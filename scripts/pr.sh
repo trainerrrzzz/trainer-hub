@@ -640,8 +640,7 @@ cmd_refusal() {
   body="$(gh pr view "$1" --repo "$REPO" --json body --jq .body)" || die "could not read the body of PR #$1"
   jq -n -L "$ROOT/scripts" --arg mark "$REFUSAL_MARK" --arg body "$body" 'include "records";
     $body | record($mark)
-    | if . == null then null
-      else (capture("refused on `(?<sha>[0-9a-f]{40})`: (?<reasons>.*)$") // {sha: null, reasons: .}) end'
+    | if . == null then null else {sha: record_sha, reasons: (record_reasons // .)} end'
 }
 
 case "${1:-}" in

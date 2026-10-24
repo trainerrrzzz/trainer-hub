@@ -816,6 +816,25 @@ describe('pr.sh refusal', () => {
     });
   });
 
+  it('reads a Merge gate line without "refused on" by its commit and reasons', () => {
+    const result = refusal({
+      out: { body: `**Merge gate:** \`${HEAD}\`: up to date (2 commits behind main)` },
+    });
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(JSON.parse(result.stdout), {
+      sha: HEAD,
+      reasons: 'up to date (2 commits behind main)',
+    });
+  });
+
+  it('prints the whole Merge gate line with a null commit when the line names no commit', () => {
+    const line =
+      '**Merge gate:** refused: self-review clean (no self-review record in the PR body)';
+    const result = refusal({ out: { body: `Closes #57\n\n${line}` } });
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(JSON.parse(result.stdout), { sha: null, reasons: line });
+  });
+
   it('prints null without a refusal, and fails when it cannot read the PR', () => {
     assert.equal(refusal({ out: { body: 'Closes #57' } }).stdout, 'null\n');
     const failed = refusal({ out: '', status: 1 });

@@ -34,20 +34,60 @@ guardrails            /.githooks
 guardrails            /scripts
 guardrails            /docs/agents
 guardrails            /docs/engineering/WORKFLOW.md
-# The files that define the checks: the root package.json holds their scripts and also matches the dependencies rule
-# below, so it is owner-only, while every other package.json stays a dependency change. A biome.json at any depth can
-# load the i18n lint rule, and a vitest config at any depth sets what the tests run.
+# The files that define the checks, or can switch one off or hide drift: the root package.json holds their scripts and
+# also matches the dependencies rule below, so it is owner-only, while every other package.json stays a dependency
+# change. Configs that a nested folder can add or override match at every depth: turbo.json (inputs), biome.json and
+# biome.jsonc (they can load the i18n lint rule), vitest configs (what the tests run, integration ones too), Playwright,
+# tsconfig, SwiftLint, .editorconfig (ktlint), Xcode test plans (they skip tests) and the global setup of a test
+# folder, and the Xcode scheme (it names the test plan). The anchored files and folders, which no other path matches,
+# are the shared vitest preset, the CLI and tools of i18n, the CLI of the design tokens and its contrast check
+# (contrast.ts holds the pass/fail), the lint folders (i18n, ui, Android, iOS), the drift checks (the contract's
+# check.ts and the pipeline.ts that holds its drift comparison and the list it compares, the design tokens'
+# check.ts), the iOS test-skip file, the Android build files that wire the checks (the root and app
+# build.gradle.kts hold the lint and release checks, settings.gradle.kts picks the lint-rules folder),
+# e2e/maestro/config.yaml (which flows CI runs), .shellcheckrc and docs/engineering/TESTING.md. project.pbxproj also
+# carries every ordinary project change, so it stays low (ADR-021). Other source inside packages, test helpers
+# included, stays low and is covered by review.
 guardrails            /package.json
-guardrails            /turbo.json
+guardrails            turbo.json
 guardrails            biome.json
+guardrails            biome.jsonc
 guardrails            /.shellcheckrc
 guardrails            /packages/i18n/lint
+guardrails            /packages/i18n/src/cli.ts
+guardrails            /packages/i18n/src/tools
+guardrails            /packages/testing/src/vitest.ts
+guardrails            /packages/contract/scripts/check.ts
+guardrails            /packages/contract/scripts/pipeline.ts
+guardrails            /packages/design-tokens/src/check.ts
+guardrails            /packages/design-tokens/src/cli.ts
+guardrails            /packages/design-tokens/src/contrast.ts
+guardrails            /packages/ui/lint
+guardrails            /apps/android/lint
+guardrails            /apps/android/build.gradle.kts
+guardrails            /apps/android/app/build.gradle.kts
+guardrails            /apps/android/settings.gradle.kts
+guardrails            /e2e/maestro/config.yaml
+guardrails            *.xcscheme
+guardrails            /apps/ios/lint
+guardrails            /apps/ios/FivviProUITests/Support/TestPlanSkips.swift
+guardrails            *.xctestplan
+guardrails            .editorconfig
+guardrails            .swiftlint.yml
+guardrails            test/global-setup.ts
 guardrails            /docs/engineering/TESTING.md
-guardrails            vitest.config.*
-guardrails            /tsconfig.base.json
+guardrails            vitest*.config.*
+guardrails            playwright.config.*
+guardrails            tsconfig.json
+guardrails            tsconfig.*.json
 dependencies          package.json
 dependencies          /pnpm-lock.yaml
 dependencies          /pnpm-workspace.yaml
 dependencies          /.npmrc
+# The native dependency manifests, at any depth: Gradle's version catalog and wrapper, Swift's resolved packages.
+# gradle-wrapper.jar stays low: CI's gradle/actions/setup-gradle validates the wrapper.
+dependencies          libs.versions.toml
+dependencies          gradle-wrapper.properties
+dependencies          Package.resolved
 infrastructure        Dockerfile*
 infrastructure        /.railway

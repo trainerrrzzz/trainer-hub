@@ -225,7 +225,7 @@ agent_merged_items() {
       | select(.record != null and .head != null and (.record | record_sha) == .head)]
     | sort_by(.mergedAt) | reverse | .[]
     | "PR #\(.number) \(.title) (merged by an agent; high-risk: \(.record
-        | capture("^[^`]*`[0-9a-f]{40}`: (?<reasons>.*)$").reasons // "reasons not recorded"))"' <<<"$merged" \
+        | record_reasons // "reasons not recorded"))"' <<<"$merged" \
     || die "could not read the merged PRs"
 }
 
