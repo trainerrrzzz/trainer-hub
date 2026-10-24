@@ -1,0 +1,7 @@
+{
+  "name": "release",
+  "reviewers": ["thekeyvan"],
+  "prevent_self_review": false,
+  "can_admins_bypass": false,
+  "deployment_branches": ["main"]
+}

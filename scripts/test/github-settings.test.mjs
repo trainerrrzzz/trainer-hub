@@ -8,6 +8,7 @@ import { fakeGh } from './fake-gh.mjs';
 const ROOT = join(import.meta.dirname, '../..');
 const RULESET = JSON.parse(readFileSync(join(ROOT, '.github/rulesets/main.json'), 'utf8'));
 const SETTINGS = JSON.parse(readFileSync(join(ROOT, '.github/repo-settings.json'), 'utf8'));
+const RELEASE = JSON.parse(readFileSync(join(ROOT, '.github/environments/release.json'), 'utf8'));
 
 describe('the versioned GitHub settings', () => {
   it('require exactly the five CI jobs of WORKFLOW.md §7 as checks on main', () => {
@@ -79,11 +80,18 @@ describe('github-settings.sh apply', () => {
   const gh = fakeGh();
   after(() => gh.cleanup());
 
-  const apply = (existing) => {
+  const OWNER_ID = 4242;
+  const apply = (existing, policies = []) => {
     const result = spawnSync(join(ROOT, 'scripts/github-settings.sh'), ['apply'], {
       encoding: 'utf8',
       env: gh.env([
         { match: '^api repos/[^ ]+/rulesets$', out: existing },
+        { match: '^api users/', out: { id: OWNER_ID } },
+        {
+          match: '^api repos/[^ ]+/environments/release/deployment-branch-policies( --jq|$)',
+          out: { branch_policies: policies },
+        },
+        { match: '^api --method DELETE ', out: '' },
         { match: '^api --method (POST|PUT|PATCH) ', out: {} },
         { match: '^label create ', out: '' },
       ]),
@@ -118,5 +126,54 @@ describe('github-settings.sh apply', () => {
         ['run-native', true],
       ],
     );
+  });
+
+  describe('E017 AC7: the release environment', () => {
+    const env = (calls) =>
+      writes(calls).filter((call) => call.args.join(' ').includes('/environments/release'));
+
+    it('is recorded as a versioned file: the owner reviews every deployment, only main deploys', () => {
+      assert.equal(RELEASE.name, 'release');
+      assert.deepEqual(RELEASE.reviewers, ['thekeyvan']);
+      assert.deepEqual(RELEASE.deployment_branches, ['main']);
+    });
+
+    it("E017 AC7: admins cannot bypass the protection rules (agents use the owner's admin token)", () => {
+      assert.equal(RELEASE.can_admins_bypass, false);
+    });
+
+    it('E017 AC7: creates the environment with the owner as the required reviewer, and only custom branch policies', () => {
+      const [put] = env(apply([]));
+      assert.match(put.args.join(' '), /^api --method PUT repos\/[^ ]+\/environments\/release /);
+      assert.deepEqual(JSON.parse(put.input), {
+        reviewers: [{ type: 'User', id: OWNER_ID }],
+        prevent_self_review: false,
+        can_admins_bypass: false,
+        deployment_branch_policy: { protected_branches: false, custom_branch_policies: true },
+      });
+    });
+
+    it('E017 AC7: allows deployments from main only', () => {
+      const posts = env(apply([])).filter((call) => call.args.includes('POST'));
+      assert.equal(posts.length, 1);
+      assert.match(posts[0].args.join(' '), /deployment-branch-policies /);
+      assert.deepEqual(JSON.parse(posts[0].input), { name: 'main', type: 'branch' });
+    });
+
+    it('E017 AC7: running it again adds nothing and removes any other branch policy', () => {
+      const calls = env(
+        apply(
+          [],
+          [
+            { id: 1, name: 'main' },
+            { id: 2, name: 'feature/*' },
+          ],
+        ),
+      );
+      assert.equal(calls.filter((call) => call.args.includes('POST')).length, 0);
+      const deletes = calls.filter((call) => call.args.includes('DELETE'));
+      assert.equal(deletes.length, 1);
+      assert.match(deletes[0].args.join(' '), /deployment-branch-policies\/2$/);
+    });
   });
 });

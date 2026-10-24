@@ -143,7 +143,7 @@ The reviewer checks this table against the code.
 | **PR touching the Android app or its inputs (Linux, required when triggered)** | `Android`: `pnpm test:android`, then `pnpm test:maestro` (§7.1). Path-filtered; the paths are in `WORKFLOW.md §7` |
 | **PR touching the iOS app or its inputs (macOS, required when triggered)** | `iOS`: `pnpm test:ios` (§7.1). Path-filtered to save macOS minutes (ROADMAP §12); the paths are in `WORKFLOW.md §7` |
 | **PR touching mobile apps, contract or strings** | Maestro flows on the platforms affected. If CI minutes run short, Maestro runs locally and nightly instead; the PR description must say it ran |
-| **Before a TestFlight / Play internal build** | Full suite on both platforms, both locales |
+| **Before a TestFlight / Play internal build** | Full suite on both platforms, both locales; the release run does it first and uploads nothing when a suite fails ([`RELEASE.md`](RELEASE.md)) |
 
 **Budget:** keep the required Linux checks under ~10 minutes. If they get slower, speed them up (parallelise, move logic tests down a layer), don't drop them.
 

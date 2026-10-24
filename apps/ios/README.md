@@ -123,3 +123,7 @@ Every colour comes from the design tokens. SwiftLint's custom rule `no_colour_li
 Crashes, app hangs and watchdog terminations go to the Sentry `ios` project with sessions for the crash-free rate (E009, [OBSERVABILITY.md §1 "iOS"](../../docs/engineering/OBSERVABILITY.md#ios)). `Observability/` is the only code that talks to `sentry-cocoa`: `ErrorReporting.start()` at launch reads the DSN and environment from the build configuration and does nothing without a DSN, `ErrorReporting.capture(_:)` reports an error the app handled, and `Scrubber` applies the scrubbing rules in `beforeSend` and `beforeBreadcrumb`. SwiftLint's custom rule `no_direct_sentry` fails on `import Sentry` or `SentrySDK` anywhere else, apart from the tests of that module. Report through the module; never add an analytics SDK.
 
 SwiftLint is pinned by version and SHA-256 in `scripts/_ios.sh` and downloaded to `.build/` on first use.
+
+## Releasing
+
+Builds for testers go through TestFlight; how a run is started and approved, how testers are added and what to do when an upload is rejected is in [`docs/engineering/RELEASE.md`](../../docs/engineering/RELEASE.md).

@@ -143,6 +143,7 @@ check "agent definitions" "$ROOT/scripts/agents.sh" check
 check "commit messages" commit_messages
 check "commit emails" "$ROOT/scripts/emails.sh" commits
 check "file emails" "$ROOT/scripts/emails.sh" files
+check "file secrets" "$ROOT/scripts/secrets.sh" files
 check "doc links" doc_links
 if [ ! -d node_modules ]; then
   echo "✗ workspace: no node_modules — run scripts/bootstrap.sh"

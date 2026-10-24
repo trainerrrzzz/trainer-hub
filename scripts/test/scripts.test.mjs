@@ -499,6 +499,7 @@ describe('usage', () => {
       'risk',
       'github-settings',
       'emails',
+      'secrets',
       'android',
       'maestro',
     ]) {

@@ -42,3 +42,7 @@ Some TLS-inspecting proxies (e.g. Zscaler) break Java downloads. The scripts han
 
 - Java doesn't trust the proxy's CA: on macOS, `scripts/_android.sh` builds `~/.config/fivvi/java-cacerts` from the JDK's CAs plus the System keychain and sets `JAVA_TOOL_OPTIONS` for its own commands. Run Gradle through the scripts, or set the same option yourself.
 - The proxy blocks jars on `repo.maven.apache.org`: `settings.gradle.kts` uses Maven Central's `repo1.maven.org` host instead.
+
+## Releasing
+
+Builds for testers go through Play internal testing; how a run is started and approved, how testers are added and what to do when an upload is rejected is in [`docs/engineering/RELEASE.md`](../../docs/engineering/RELEASE.md).
