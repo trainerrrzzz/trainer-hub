@@ -18,6 +18,23 @@
         <item quantity="other">You have %1$d sessions today.</item>
     </plurals>
     <string name="hello_title">Welcome to Fivvi</string>
+    <string name="home_description">Your workspace will appear here soon.</string>
+    <string name="home_title">You\'re signed in</string>
     <string name="not_found_body">We can\'t find this page. Check the link and try again.</string>
     <string name="not_found_title">Page not found</string>
+    <string name="sign_in_change_email">Change email address</string>
+    <string name="sign_in_check_email_body">If %1$s is registered, you\'ll receive an email with a code and a sign-in link.</string>
+    <string name="sign_in_check_email_title">Check your email</string>
+    <string name="sign_in_code_help">Enter the code from the email.</string>
+    <string name="sign_in_code_label">Code</string>
+    <string name="sign_in_email_label">Email address</string>
+    <string name="sign_in_errors_generic">Something went wrong. Try again.</string>
+    <string name="sign_in_errors_invalid_email">This email address doesn\'t look right. Check it and try again.</string>
+    <string name="sign_in_errors_invalid_or_expired_code">This code isn\'t right or has expired. Check the code in the email or request a new one.</string>
+    <string name="sign_in_errors_no_connection">No connection. Check your internet and try again.</string>
+    <string name="sign_in_resend">Resend code</string>
+    <string name="sign_in_resent">If %1$s is registered, you\'ll receive a new email.</string>
+    <string name="sign_in_send_code">Send code</string>
+    <string name="sign_in_submit_code">Sign in</string>
+    <string name="sign_in_title">Sign in</string>
 </resources>

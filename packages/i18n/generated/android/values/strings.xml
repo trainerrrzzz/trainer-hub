@@ -30,6 +30,40 @@
         <item quantity="other">Je hebt vandaag %1$d sessies.</item>
     </plurals>
     <string name="hello_title">Welkom bij Fivvi</string>
+    <!-- Line under the heading of the placeholder signed-in home. -->
+    <string name="home_description">Hier komt straks je werkruimte.</string>
+    <!-- Heading of the signed-in home, a placeholder until workspaces arrive (F002). -->
+    <string name="home_title">Je bent ingelogd</string>
     <string name="not_found_body">We kunnen deze pagina niet vinden. Controleer de link en probeer het opnieuw.</string>
     <string name="not_found_title">Pagina niet gevonden</string>
+    <!-- Button on the second step that goes back to the email field. -->
+    <string name="sign_in_change_email">E-mailadres wijzigen</string>
+    <!-- Under the heading of the second step. {email} is the address that was entered. Deliberately does not say whether an account exists (no account enumeration). -->
+    <string name="sign_in_check_email_body">Als %1$s bij ons bekend is, ontvang je een e-mail met een code en een inloglink.</string>
+    <!-- Heading of the second step of the sign-in page, shown after the email address was sent. Same wording whether or not the address has an account. -->
+    <string name="sign_in_check_email_title">Check je e-mail</string>
+    <!-- Helper text under the code field on the second step of the sign-in page. The field is described by it. -->
+    <string name="sign_in_code_help">Vul de code uit de e-mail in.</string>
+    <!-- Label of the field for the 6-digit code from the email (one-time-code autofill on phones). The word alone; the sentence is signIn.codeHelp. -->
+    <string name="sign_in_code_label">Code</string>
+    <!-- Label of the email field on the sign-in page. -->
+    <string name="sign_in_email_label">E-mailadres</string>
+    <!-- Shown when sign-in failed for any other reason. -->
+    <string name="sign_in_errors_generic">Er ging iets mis. Probeer het opnieuw.</string>
+    <!-- Under the email field when the address is empty or not an email address. -->
+    <string name="sign_in_errors_invalid_email">Dit e-mailadres klopt niet. Controleer het en probeer het opnieuw.</string>
+    <!-- Shown when the code was refused. One message for a wrong, expired, used or replaced code: it never says which. -->
+    <string name="sign_in_errors_invalid_or_expired_code">Deze code klopt niet of is verlopen. Controleer de code in de e-mail of vraag een nieuwe code aan.</string>
+    <!-- Shown when the sign-in request could not reach the server. -->
+    <string name="sign_in_errors_no_connection">Geen verbinding. Controleer je internet en probeer het opnieuw.</string>
+    <!-- Button on the second step that sends a new email. The new code replaces the old one. -->
+    <string name="sign_in_resend">Code opnieuw versturen</string>
+    <!-- Confirmation after a new email was requested. {email} is the address entered. Does not say whether an account exists. -->
+    <string name="sign_in_resent">Als %1$s bij ons bekend is, ontvang je een nieuwe e-mail.</string>
+    <!-- Button under the email field of the sign-in page. Sends one email with a 6-digit code and a sign-in link. -->
+    <string name="sign_in_send_code">Code versturen</string>
+    <!-- Button that signs in with the code that was entered. -->
+    <string name="sign_in_submit_code">Inloggen</string>
+    <!-- Heading of the first step of the sign-in page (TW-10), where the email address is entered, and the browser tab title of the page. -->
+    <string name="sign_in_title">Inloggen</string>
 </resources>

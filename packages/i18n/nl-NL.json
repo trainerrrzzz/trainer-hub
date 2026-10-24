@@ -23,6 +23,29 @@
     "title": "Pagina niet gevonden",
     "body": "We kunnen deze pagina niet vinden. Controleer de link en probeer het opnieuw."
   },
+  "signIn": {
+    "title": "Inloggen",
+    "emailLabel": "E-mailadres",
+    "sendCode": "Code versturen",
+    "checkEmailTitle": "Check je e-mail",
+    "checkEmailBody": "Als {email} bij ons bekend is, ontvang je een e-mail met een code en een inloglink.",
+    "codeLabel": "Code",
+    "codeHelp": "Vul de code uit de e-mail in.",
+    "submitCode": "Inloggen",
+    "resend": "Code opnieuw versturen",
+    "resent": "Als {email} bij ons bekend is, ontvang je een nieuwe e-mail.",
+    "changeEmail": "E-mailadres wijzigen",
+    "errors": {
+      "invalidEmail": "Dit e-mailadres klopt niet. Controleer het en probeer het opnieuw.",
+      "invalidOrExpiredCode": "Deze code klopt niet of is verlopen. Controleer de code in de e-mail of vraag een nieuwe code aan.",
+      "noConnection": "Geen verbinding. Controleer je internet en probeer het opnieuw.",
+      "generic": "Er ging iets mis. Probeer het opnieuw."
+    }
+  },
+  "home": {
+    "title": "Je bent ingelogd",
+    "description": "Hier komt straks je werkruimte."
+  },
   "email": {
     "layout": {
       "footer": "Deze e-mail is verstuurd door Fivvi."

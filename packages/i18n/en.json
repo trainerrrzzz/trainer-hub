@@ -23,6 +23,29 @@
     "title": "Page not found",
     "body": "We can't find this page. Check the link and try again."
   },
+  "signIn": {
+    "title": "Sign in",
+    "emailLabel": "Email address",
+    "sendCode": "Send code",
+    "checkEmailTitle": "Check your email",
+    "checkEmailBody": "If {email} is registered, you'll receive an email with a code and a sign-in link.",
+    "codeLabel": "Code",
+    "codeHelp": "Enter the code from the email.",
+    "submitCode": "Sign in",
+    "resend": "Resend code",
+    "resent": "If {email} is registered, you'll receive a new email.",
+    "changeEmail": "Change email address",
+    "errors": {
+      "invalidEmail": "This email address doesn't look right. Check it and try again.",
+      "invalidOrExpiredCode": "This code isn't right or has expired. Check the code in the email or request a new one.",
+      "noConnection": "No connection. Check your internet and try again.",
+      "generic": "Something went wrong. Try again."
+    }
+  },
+  "home": {
+    "title": "You're signed in",
+    "description": "Your workspace will appear here soon."
+  },
   "email": {
     "layout": {
       "footer": "This email was sent by Fivvi."

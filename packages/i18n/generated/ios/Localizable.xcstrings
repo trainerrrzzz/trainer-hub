@@ -295,6 +295,42 @@
         }
       }
     },
+    "home.description" : {
+      "comment" : "Line under the heading of the placeholder signed-in home.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your workspace will appear here soon."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hier komt straks je werkruimte."
+          }
+        }
+      }
+    },
+    "home.title" : {
+      "comment" : "Heading of the signed-in home, a placeholder until workspaces arrive (F002).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You're signed in"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Je bent ingelogd"
+          }
+        }
+      }
+    },
     "notFound.body" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -325,6 +361,276 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pagina niet gevonden"
+          }
+        }
+      }
+    },
+    "signIn.changeEmail" : {
+      "comment" : "Button on the second step that goes back to the email field.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Change email address"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "E-mailadres wijzigen"
+          }
+        }
+      }
+    },
+    "signIn.checkEmailBody" : {
+      "comment" : "Under the heading of the second step. {email} is the address that was entered. Deliberately does not say whether an account exists (no account enumeration).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "If %1$@ is registered, you'll receive an email with a code and a sign-in link."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Als %1$@ bij ons bekend is, ontvang je een e-mail met een code en een inloglink."
+          }
+        }
+      }
+    },
+    "signIn.checkEmailTitle" : {
+      "comment" : "Heading of the second step of the sign-in page, shown after the email address was sent. Same wording whether or not the address has an account.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check your email"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check je e-mail"
+          }
+        }
+      }
+    },
+    "signIn.codeHelp" : {
+      "comment" : "Helper text under the code field on the second step of the sign-in page. The field is described by it.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter the code from the email."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vul de code uit de e-mail in."
+          }
+        }
+      }
+    },
+    "signIn.codeLabel" : {
+      "comment" : "Label of the field for the 6-digit code from the email (one-time-code autofill on phones). The word alone; the sentence is signIn.codeHelp.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Code"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Code"
+          }
+        }
+      }
+    },
+    "signIn.emailLabel" : {
+      "comment" : "Label of the email field on the sign-in page.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Email address"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "E-mailadres"
+          }
+        }
+      }
+    },
+    "signIn.errors.generic" : {
+      "comment" : "Shown when sign-in failed for any other reason.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Something went wrong. Try again."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Er ging iets mis. Probeer het opnieuw."
+          }
+        }
+      }
+    },
+    "signIn.errors.invalidEmail" : {
+      "comment" : "Under the email field when the address is empty or not an email address.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This email address doesn't look right. Check it and try again."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dit e-mailadres klopt niet. Controleer het en probeer het opnieuw."
+          }
+        }
+      }
+    },
+    "signIn.errors.invalidOrExpiredCode" : {
+      "comment" : "Shown when the code was refused. One message for a wrong, expired, used or replaced code: it never says which.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This code isn't right or has expired. Check the code in the email or request a new one."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deze code klopt niet of is verlopen. Controleer de code in de e-mail of vraag een nieuwe code aan."
+          }
+        }
+      }
+    },
+    "signIn.errors.noConnection" : {
+      "comment" : "Shown when the sign-in request could not reach the server.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No connection. Check your internet and try again."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geen verbinding. Controleer je internet en probeer het opnieuw."
+          }
+        }
+      }
+    },
+    "signIn.resend" : {
+      "comment" : "Button on the second step that sends a new email. The new code replaces the old one.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resend code"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Code opnieuw versturen"
+          }
+        }
+      }
+    },
+    "signIn.resent" : {
+      "comment" : "Confirmation after a new email was requested. {email} is the address entered. Does not say whether an account exists.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "If %1$@ is registered, you'll receive a new email."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Als %1$@ bij ons bekend is, ontvang je een nieuwe e-mail."
+          }
+        }
+      }
+    },
+    "signIn.sendCode" : {
+      "comment" : "Button under the email field of the sign-in page. Sends one email with a 6-digit code and a sign-in link.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Send code"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Code versturen"
+          }
+        }
+      }
+    },
+    "signIn.submitCode" : {
+      "comment" : "Button that signs in with the code that was entered.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inloggen"
+          }
+        }
+      }
+    },
+    "signIn.title" : {
+      "comment" : "Heading of the first step of the sign-in page (TW-10), where the email address is entered, and the browser tab title of the page.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inloggen"
           }
         }
       }

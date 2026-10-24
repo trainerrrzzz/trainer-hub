@@ -24,6 +24,7 @@ try {
 }
 
 // Sign-in (F001): a synthetic secret, and this server's own address for the links in emails.
+// SIGN_UP_ALLOWED_EMAILS comes from playwright.config.ts.
 const server = spawn(process.execPath, ['.next/standalone/apps/web/server.js'], {
   stdio: 'inherit',
   env: {

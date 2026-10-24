@@ -28,7 +28,7 @@ A person signs in with only their email address. One request creates **one verif
 - **The answer does not wait for the work.** Looking up the account, writing the verification and sending the email run after the answer (`runInBackground`), for every address alike, so the answer's time never shows who has an account. A failure of that work is logged by error name only (an `EmailSendError` by its message, which names the provider, status and error code, never the address) and passed to `reportError` (Sentry in `apps/web`); the person asks again. This relies on a long-running Node process, which Railway is; a serverless runtime would need its `waitUntil` here.
 - No passwords: an address that is neither an account nor allowed is answered like any other.
 
-Not here yet (spec #128, later tickets): the confirm-link endpoint (#136; it creates the account the same way), rate limits (#134), the web pages and product events.
+Not here yet (spec #128, later tickets): the confirm-link endpoint (#136; it creates the account the same way), rate limits (#134), the confirm step, the route guard and sign out (#137) and product events. The code step of the sign-in page (`/login`, `apps/web/app/login`) calls the two endpoints above with `fetch` and words a failed code from the error code, never from the English message.
 
 ## Tables
 

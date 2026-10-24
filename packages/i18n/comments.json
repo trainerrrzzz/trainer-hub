@@ -22,5 +22,22 @@
   "email.signIn.linkIntro": "Line above the sign-in link. The link opens a confirmation page; nothing is signed in until the person presses its button.",
   "email.signIn.linkButton": "Label of the button that opens the sign-in link (the confirmation page).",
   "email.signIn.validity": "{minutes} is how many minutes the code and the sign-in link work, e.g. 15.",
-  "email.signIn.ignore": "Last line of the sign-in email, for someone who did not ask for it."
+  "email.signIn.ignore": "Last line of the sign-in email, for someone who did not ask for it.",
+  "signIn.title": "Heading of the first step of the sign-in page (TW-10), where the email address is entered, and the browser tab title of the page.",
+  "signIn.emailLabel": "Label of the email field on the sign-in page.",
+  "signIn.sendCode": "Button under the email field of the sign-in page. Sends one email with a 6-digit code and a sign-in link.",
+  "signIn.checkEmailTitle": "Heading of the second step of the sign-in page, shown after the email address was sent. Same wording whether or not the address has an account.",
+  "signIn.checkEmailBody": "Under the heading of the second step. {email} is the address that was entered. Deliberately does not say whether an account exists (no account enumeration).",
+  "signIn.codeLabel": "Label of the field for the 6-digit code from the email (one-time-code autofill on phones). The word alone; the sentence is signIn.codeHelp.",
+  "signIn.codeHelp": "Helper text under the code field on the second step of the sign-in page. The field is described by it.",
+  "signIn.submitCode": "Button that signs in with the code that was entered.",
+  "signIn.resend": "Button on the second step that sends a new email. The new code replaces the old one.",
+  "signIn.resent": "Confirmation after a new email was requested. {email} is the address entered. Does not say whether an account exists.",
+  "signIn.changeEmail": "Button on the second step that goes back to the email field.",
+  "signIn.errors.invalidEmail": "Under the email field when the address is empty or not an email address.",
+  "signIn.errors.invalidOrExpiredCode": "Shown when the code was refused. One message for a wrong, expired, used or replaced code: it never says which.",
+  "signIn.errors.noConnection": "Shown when the sign-in request could not reach the server.",
+  "signIn.errors.generic": "Shown when sign-in failed for any other reason.",
+  "home.title": "Heading of the signed-in home, a placeholder until workspaces arrive (F002).",
+  "home.description": "Line under the heading of the placeholder signed-in home."
 }
