@@ -24,11 +24,12 @@
     "test:ios": "scripts/test-ios.sh",
     "test:android": "scripts/android.sh test",
     "test:maestro": "scripts/maestro.sh android",
+    "app-icon": "node scripts/app-icon.mjs",
     "format:check": "turbo run format:check",
     "check": "turbo run check",
     "generate:contract": "pnpm --filter @fivvi/contract generate",
-    "format:check:root": "biome format ./*.json .claude scripts/test",
-    "lint:root": "biome lint .claude scripts/test && shellcheck -x scripts/*.sh .githooks/*",
+    "format:check:root": "biome format ./*.json .claude scripts",
+    "lint:root": "biome lint .claude scripts && shellcheck -x scripts/*.sh .githooks/*",
     "check:root": "scripts/skills.sh check && scripts/agents.sh check",
     "test:root": "node --test '.claude/hooks/*.test.mjs' 'scripts/test/*.test.mjs'",
     "format": "biome format --write .",
@@ -43,6 +44,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "catalog:",
+    "@fivvi/design-tokens": "workspace:*",
     "railway": "catalog:",
     "turbo": "catalog:",
     "typescript": "catalog:"

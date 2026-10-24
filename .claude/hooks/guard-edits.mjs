@@ -10,6 +10,7 @@ const PROTECTED_BRANCHES = new Set(['main']);
 const CONTRACT = 'pnpm generate:contract';
 const TOKENS = 'pnpm --filter @fivvi/design-tokens generate';
 const AGENT_DEFINITIONS = 'scripts/agents.sh sync';
+const APP_ICON = 'pnpm app-icon';
 export const GENERATED_PATHS = [
   ['.claude/agents/', AGENT_DEFINITIONS],
   ['.github/agents/', AGENT_DEFINITIONS],
@@ -23,6 +24,13 @@ export const GENERATED_PATHS = [
   ['packages/design-tokens/FivviDesignTokens/Sources/FivviDesignTokens/Generated/', TOKENS],
   ['packages/design-tokens/kotlin/generated/', TOKENS],
   ['packages/database/migrations/meta/', 'pnpm db:generate --name <what>'],
+  ['apps/ios/FivviPro/Assets.xcassets/AppIcon.appiconset/', APP_ICON],
+  ['apps/ios/FivviPro/Assets.xcassets/Contents.json', APP_ICON],
+  ['apps/android/app/src/main/ic_launcher-playstore.png', APP_ICON],
+  ['apps/android/app/src/main/res/drawable/ic_launcher_background.xml', APP_ICON],
+  ['apps/android/app/src/main/res/drawable/ic_launcher_foreground.xml', APP_ICON],
+  ['apps/android/app/src/main/res/drawable/ic_launcher_monochrome.xml', APP_ICON],
+  ['apps/android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml', APP_ICON],
 ];
 
 const PATCH_FILE_LINE = /^\*\*\* (?:(?:Add|Update|Delete) File|Move to): (.+)$/gm;

@@ -8,5 +8,8 @@ FIVVI_API_BASE_URL = http:/$()/localhost:3000/api
 FIVVI_SENTRY_DSN =
 FIVVI_SENTRY_ENVIRONMENT = development
 
+// The version of both apps and the build number of Debug builds and CI (1): apps/Version.xcconfig (E017 AC4).
+#include "../../Version.xcconfig"
+
 // For a preview environment or a phone on your LAN, set FIVVI_API_BASE_URL in Config/Local.xcconfig (git-ignored).
 #include? "Local.xcconfig"

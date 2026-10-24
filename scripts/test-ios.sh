@@ -2,7 +2,9 @@
 # The iOS app's checks, the same steps as the `iOS` CI job (E008). `pnpm test:ios` runs this.
 #
 #   test-ios.sh   SwiftLint and its fixtures (literal text, colours, direct Sentry calls), the Debug and Release
-#                 configurations (Release's Sentry DSN in the EU region, Info.plists in Xcode's form), the Swift package
+#                 configurations (Release's API address over HTTPS and not a placeholder, its Sentry DSN in the EU
+#                 region, no export compliance question, the version both apps share, the final bundle ID, Info.plists
+#                 in Xcode's form), the Swift package
 #                 allowlist, that every UI test runs in at least one test-plan configuration, that Xcode's string
 #                 catalog sync leaves the generated catalogs unchanged, then one build-for-testing and one run of the
 #                 unit and UI tests in nl and en without building again (one result bundle, both locales), on the newest
@@ -51,19 +53,92 @@ debug_configuration() {
     || { echo "Config/Debug.xcconfig: FIVVI_SENTRY_DSN must stay empty; set it in Local.xcconfig"; return 1; }
 }
 
-# Release talks HTTPS to the production API only: no App Transport Security exception in its Info.plist. It reports to
-# the Sentry `ios` project in the EU region: its DSN's host is `<org>.ingest.de.sentry.io`.
+# E017 AC5: the production API over HTTPS, on a real host: a dotted name, not the reserved `.invalid` placeholder, with
+# the `/api` mount.
+production_base_url() {
+  local url=$1 host
+  [[ "$url" =~ ^https://([A-Za-z0-9-]+\.)+[A-Za-z0-9-]+/api/?$ ]] || return 1
+  host="${url#https://}"
+  [[ "${host%%/*}" != *.invalid ]]
+}
+
+# production_base_url must refuse an empty, a plain-HTTP, a `.invalid` and a host-less address, and take the real one.
+production_base_url_fixtures() {
+  local url rc=0
+  for url in "" "http://production.fivvi.app/api" "https://production.fivvi.invalid/api" "https:///api" "https://localhost/api"; do
+    ! production_base_url "$url" || { echo "E017 AC5: production_base_url accepted '$url'"; rc=1; }
+  done
+  production_base_url "https://production.fivvi.app/api" || { echo "E017 AC5: production_base_url refused a real address"; rc=1; }
+  return "$rc"
+}
+
+# The settings an Xcode configuration of the app resolves to, with any build settings given after it (as `xcodebuild`
+# takes them on its command line). It resolves the Swift packages, so it uses the cached .build/SourcePackages like the
+# build does (without it, it cloned them all again: 71 s of CI's first run, #105). Reading the xcconfig instead would not
+# show what the project's configuration really resolves to.
+build_settings() {
+  local configuration=$1
+  shift
+  xcodebuild -project FivviPro.xcodeproj -target FivviPro -configuration "$configuration" -showBuildSettings \
+    -clonedSourcePackagesDirPath .build/SourcePackages "$@"
+}
+
+# A setting's value in the target's block of the output. Xcode first echoes the settings given on the command line
+# ("Build settings from command line:"), which says nothing about what the target resolves to, so only the block "Build
+# settings for action build and target FivviPro:" counts.
+setting_of() {
+  awk -v key="$1" '
+    /^Build settings for action build and target FivviPro:/ { in_target = 1; next }
+    /^Build settings / { in_target = 0 }
+    in_target && $1 == key && $2 == "=" { sub(/^[[:space:]]*[^[:space:]]+ = /, ""); print; exit }
+  ' <<<"$2"
+}
+
+# The one place that reads apps/Version.xcconfig here: a setting of the file both apps take their version from.
+shared_setting() {
+  sed -nE "s/^[[:space:]]*$1[[:space:]]*=[[:space:]]*([^[:space:]]+)[[:space:]]*\$/\1/p" "$ROOT/apps/Version.xcconfig"
+}
+
+# E017 AC4 and AC8: a configuration resolves the version of apps/Version.xcconfig (the one Android reads), the default
+# build number 1 and the bundle ID that apps/ios/README.md records as final.
+version_and_identifier() {
+  local settings=$1 shared default recorded id version number rc=0
+  shared="$(shared_setting MARKETING_VERSION)"
+  default="$(shared_setting CURRENT_PROJECT_VERSION)"
+  version="$(setting_of MARKETING_VERSION "$settings")"
+  number="$(setting_of CURRENT_PROJECT_VERSION "$settings")"
+  id="$(setting_of PRODUCT_BUNDLE_IDENTIFIER "$settings")"
+  # shellcheck disable=SC2016 # the backticks are the README's Markdown, not a command substitution
+  recorded="$(sed -nE 's/.*bundle ID `([^`]+)` \(final.*/\1/p' README.md)"
+  [[ "$shared" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "apps/Version.xcconfig: MARKETING_VERSION is not <major>.<minor>.<patch>: '$shared'"; rc=1; }
+  [ "$version" = "$shared" ] \
+    || { echo "E017 AC4: the app's version is '$version', not '$shared' of apps/Version.xcconfig, which Android reads"; rc=1; }
+  [ "$default" = 1 ] && [ "$number" = "$default" ] \
+    || { echo "E017 AC4: the default build number is '$number' ('$default' in apps/Version.xcconfig), not 1"; rc=1; }
+  [ -n "$recorded" ] && [ "$id" = "$recorded" ] \
+    || { echo "E017 AC8: bundle ID '$id' is not the final ID the README records: '$recorded'"; rc=1; }
+  return "$rc"
+}
+
+# E017 AC4: a release run passes its build number from outside (`xcodebuild CURRENT_PROJECT_VERSION=<n>`); a number other
+# than the default must come through to the Release configuration (it is CFBundleVersion).
+build_number_from_outside() {
+  local number
+  number="$(setting_of CURRENT_PROJECT_VERSION "$(build_settings Release CURRENT_PROJECT_VERSION=42)")"
+  [ "$number" = 42 ] \
+    || { echo "E017 AC4: CURRENT_PROJECT_VERSION=42 on the command line resolves to '$number', not 42"; return 1; }
+}
+
+# Release talks HTTPS to the production API only: no App Transport Security exception in its Info.plist, and the app
+# declares that it uses no non-exempt encryption, so App Store Connect asks no export compliance question per build
+# (E017 AC1). It reports to the Sentry `ios` project in the EU region: its DSN's host is `<org>.ingest.de.sentry.io`.
 release_configuration() {
   local settings url dsn plist
-  # The one xcodebuild call of this check. It resolves the Swift packages, so it uses the cached .build/SourcePackages
-  # like the build does (without it, it cloned them all again: 71 s of CI's first run, #105). Reading the xcconfig
-  # instead would not show what the project's Release configuration really resolves to.
-  settings="$(xcodebuild -project FivviPro.xcodeproj -target FivviPro -configuration Release -showBuildSettings \
-    -clonedSourcePackagesDirPath .build/SourcePackages)"
-  url="$(sed -nE 's/^ *FIVVI_API_BASE_URL = //p' <<<"$settings")"
-  dsn="$(sed -nE 's/^ *FIVVI_SENTRY_DSN = //p' <<<"$settings")"
-  plist="$(sed -nE 's/^ *INFOPLIST_FILE = //p' <<<"$settings")"
-  [[ "$url" == https://?*/api ]] || { echo "Release API base URL is not https://<host>/api: $url"; return 1; }
+  settings="$(build_settings Release)"
+  url="$(setting_of FIVVI_API_BASE_URL "$settings")"
+  dsn="$(setting_of FIVVI_SENTRY_DSN "$settings")"
+  plist="$(setting_of INFOPLIST_FILE "$settings")"
+  production_base_url "$url" || { echo "E017 AC5: Release base URL is not https://<real host>/api: '$url'"; return 1; }
   [[ "$dsn" =~ ^https://[^@/]+@[a-z0-9]+\.ingest\.de\.sentry\.io/[0-9]+$ ]] \
     || { echo "Release Sentry DSN is not https://<key>@<org>.ingest.de.sentry.io/<project> (EU region): $dsn"; return 1; }
   grep -qE '^ *FIVVI_SENTRY_ENVIRONMENT = production$' <<<"$settings" \
@@ -72,6 +147,9 @@ release_configuration() {
     echo "$plist has NSAppTransportSecurity: plain HTTP is for Debug only"
     return 1
   fi
+  [ "$(plutil -extract ITSAppUsesNonExemptEncryption raw -o - "$plist" 2>/dev/null)" = false ] \
+    || { echo "E017 AC1: $plist must set ITSAppUsesNonExemptEncryption to NO (HTTPS only, no own encryption)"; return 1; }
+  version_and_identifier "$settings"
 }
 
 # Every remote Swift package the app resolves is on this list. The app has no analytics SDK (PostHog or other): product
@@ -191,7 +269,10 @@ step "Every UI test runs in at least one test-plan configuration"
 test_plan_coverage
 step "Debug and Release configurations"
 debug_configuration
+production_base_url_fixtures
 release_configuration
+version_and_identifier "$(build_settings Debug)"
+build_number_from_outside
 plists_in_xcode_form
 step "Swift packages (no analytics SDK)"
 swift_packages

@@ -1,0 +1,7 @@
+// The version of both native apps, read by the iOS build (an #include in Config/*.xcconfig) and by the Android build
+// (apps/android/app/build.gradle.kts), so one number goes to both stores (E017 AC4). Change it here, nowhere else.
+MARKETING_VERSION = 0.1.0
+
+// The default build number (CFBundleVersion / versionCode) of Debug builds and CI test builds. A release run passes
+// the number of the run from outside: `xcodebuild CURRENT_PROJECT_VERSION=<n>` / `gradle -Pfivvi.buildNumber=<n>`.
+CURRENT_PROJECT_VERSION = 1

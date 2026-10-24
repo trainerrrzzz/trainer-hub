@@ -1,9 +1,13 @@
-// Release: the production API over HTTPS. Info.plist has no App Transport Security exception.
-// The production host isn't recorded in the repo yet (a Railway domain until launch, docs/engineering/ENVIRONMENTS.md):
-// the owner replaces the reserved `.invalid` placeholder before the first Release build (E017).
-// `//` starts a comment in an xcconfig, hence `$()`.
+// Release: the production API over HTTPS (docs/engineering/ENVIRONMENTS.md, "Production address"; the bought domain
+// replaces the Railway domain later). Info.plist has no App Transport Security exception, and declares that the app
+// uses no non-exempt encryption (HTTPS through the OS only, E017 AC1). `pnpm test:ios` fails on an empty, plain-HTTP or
+// `.invalid` address. `//` starts a comment in an xcconfig, hence `$()`.
 INFOPLIST_FILE = Config/Info.plist
-FIVVI_API_BASE_URL = https:/$()/production.fivvi.invalid/api
+FIVVI_API_BASE_URL = https:/$()/web-production-d3fe2.up.railway.app/api
+
+// The version of both apps and the default build number (E017 AC4): apps/Version.xcconfig. A release run overrides
+// the build number with `xcodebuild CURRENT_PROJECT_VERSION=<n>`.
+#include "../../Version.xcconfig"
 
 // Error reporting (E009, docs/engineering/OBSERVABILITY.md §1 "iOS") to the Sentry `ios` project. A DSN can only send
 // events and ships inside the app, so it isn't a secret (#85). EU region: `pnpm test:ios` fails unless it is

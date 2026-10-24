@@ -55,6 +55,23 @@ final class AppConfigurationTests: XCTestCase {
         XCTAssertEqual(url, URL(string: "https://preview.example.com/api"))
     }
 
+    /// The version is the one of both apps (apps/Version.xcconfig, which `pnpm test:ios` compares with the resolved
+    /// build settings); the build number comes from the build setting `CURRENT_PROJECT_VERSION`, which is 1 unless a
+    /// release run passes its own, so Debug builds and CI test builds are build 1 (E017 AC4).
+    func test_E017_AC4_bundleVersionFromBuildSetting() throws {
+        let info = try XCTUnwrap(Bundle.main.infoDictionary)
+
+        XCTAssertEqual(info["CFBundleVersion"] as? String, "1", "the build number of a Debug or CI test build")
+        let version = try XCTUnwrap(info["CFBundleShortVersionString"] as? String)
+        XCTAssertNotNil(version.wholeMatch(of: /\d+\.\d+\.\d+/), "\(version) is not <major>.<minor>.<patch>")
+    }
+
+    /// The bundle ID is final once the first build is uploaded (README.md, "Identifiers"; `pnpm test:ios` checks that
+    /// the README records the same ID).
+    func test_E017_AC8_bundleIDIsTheFinalID() {
+        XCTAssertEqual(Bundle.main.bundleIdentifier, "app.fivvi.pro")
+    }
+
     /// A host on this Mac or the LAN: an unqualified name (`localhost`), a `.local` name, or a loopback, private or
     /// link-local IP address (IPv4 `127/8`, `10/8`, `172.16/12`, `192.168/16`, `169.254/16`; IPv6 `::1`, `fc00::/7`,
     /// `fe80::/10`). A public host must use HTTPS.

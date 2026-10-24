@@ -289,6 +289,9 @@ importers:
       '@biomejs/biome':
         specifier: 'catalog:'
         version: 2.5.14
+      '@fivvi/design-tokens':
+        specifier: workspace:*
+        version: link:packages/design-tokens
       railway:
         specifier: 'catalog:'
         version: 3.11.0

@@ -13,11 +13,12 @@ source "$(dirname "${BASH_SOURCE[0]}")/_lib.sh"
 
 usage() { usage_of "$0"; }
 
-# Each native job: the app, its generated inputs (client, string catalogs, design tokens) and its own scripts. Shared
+# Each native job: the app, its generated inputs (client, string catalogs, design tokens), the version both apps share
+# (apps/Version.xcconfig) and its own scripts. Shared
 # files (.github/workflows/ci.yml, scripts/_lib.sh, this list) don't run them on their own. Android also runs the
 # Maestro flows in e2e/maestro.
-IOS_PATHS='^(apps/ios|packages/contract|packages/i18n/generated/ios|packages/design-tokens/FivviDesignTokens)/|^scripts/(test-ios|_ios)\.sh$'
-ANDROID_PATHS='^(apps/android|packages/contract|packages/i18n/generated/android|packages/design-tokens/kotlin|e2e/maestro)/|^scripts/(android|_android|maestro)\.sh$'
+IOS_PATHS='^(apps/ios|packages/contract|packages/i18n/generated/ios|packages/design-tokens/FivviDesignTokens)/|^apps/Version\.xcconfig$|^scripts/(test-ios|_ios)\.sh$'
+ANDROID_PATHS='^(apps/android|packages/contract|packages/i18n/generated/android|packages/design-tokens/kotlin|e2e/maestro)/|^apps/Version\.xcconfig$|^scripts/(android|_android|maestro)\.sh$'
 
 EVENT=""
 FORCE=false

@@ -102,6 +102,32 @@ describe('agent edit guard', () => {
     );
   });
 
+  it('blocks hand-edits of the generated app icon files and allows the rest of the apps', () => {
+    for (const file of [
+      'apps/ios/FivviPro/Assets.xcassets/Contents.json',
+      'apps/ios/FivviPro/Assets.xcassets/AppIcon.appiconset/Contents.json',
+      'apps/ios/FivviPro/Assets.xcassets/AppIcon.appiconset/AppIcon.png',
+      'apps/android/app/src/main/ic_launcher-playstore.png',
+      'apps/android/app/src/main/res/drawable/ic_launcher_background.xml',
+      'apps/android/app/src/main/res/drawable/ic_launcher_foreground.xml',
+      'apps/android/app/src/main/res/drawable/ic_launcher_monochrome.xml',
+      'apps/android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml',
+    ]) {
+      const reason = evaluate(claudeEdit(join(worktree, file)), gitDir) ?? '';
+      assert.match(reason, /is generated/, file);
+      assert.match(reason, /pnpm app-icon/, file);
+    }
+    for (const file of [
+      'apps/android/app/src/main/AndroidManifest.xml',
+      'apps/android/app/src/main/res/xml/network_security_config.xml',
+      'apps/ios/FivviPro/FivviProApp.swift',
+      'apps/ios/FivviPro/Assets.xcassets/AccentColor.colorset/Contents.json',
+      'scripts/app-icon.mjs',
+    ]) {
+      assert.equal(evaluate(claudeEdit(join(worktree, file)), gitDir), null, file);
+    }
+  });
+
   it('blocks hand-edits of vendored skills, also through the .claude/skills symlink', () => {
     assert.match(
       evaluate(claudeEdit(join(worktree, '.agents/skills/tdd/SKILL.md')), gitDir),
