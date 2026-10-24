@@ -49,13 +49,17 @@ export interface SignInWithCodeOptions {
 
 const PLUGIN_ID = 'sign-in-with-code';
 
+/** The path (under `/api/auth`) of the request endpoint, which the rate limits guard. */
+export const REQUEST_PATH = '/sign-in/code/request';
+
 /** `sign-in:<email>`: one verification per address, so a new request replaces the old one. */
 const identifierFor = (email: string) => `sign-in:${email}`;
 
-const emailSchema = z.string().trim().toLowerCase().pipe(z.email());
+/** The address as every sign-in rule sees it: trimmed, lower case, a valid email. */
+export const emailSchema = z.string().trim().toLowerCase().pipe(z.email());
 
 /** The same answer for every outcome of a request, so nobody can tell who has an account. */
-const REQUESTED = { status: true } as const;
+export const REQUESTED = { status: true } as const;
 
 /**
  * Sign in with one emailed verification that holds both a link token and a 6-digit code
@@ -94,7 +98,7 @@ export function signInWithCode({
     },
     endpoints: {
       requestSignInCode: createAuthEndpoint(
-        '/sign-in/code/request',
+        REQUEST_PATH,
         {
           method: 'POST',
           body: z.object({ email: emailSchema, locale: z.string().max(35).optional() }),

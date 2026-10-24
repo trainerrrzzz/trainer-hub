@@ -24,6 +24,12 @@ describe('F001 hashes of sign-in links and codes', () => {
     );
   });
 
+  it('keep the rate-limit hashes of an address and of an IP address apart', () => {
+    expect(hashSecretValue(secret, 'rate-limit-address', 'a')).not.toBe(
+      hashSecretValue(secret, 'rate-limit-ip', 'a'),
+    );
+  });
+
   it('are compared without a length error', () => {
     const hash = hashSecretValue(secret, 'code', '482915');
     expect(hashesEqual(hash, hash)).toBe(true);

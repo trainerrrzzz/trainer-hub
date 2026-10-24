@@ -5,7 +5,8 @@ import { isLocale } from '@fivvi/i18n';
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { closedSignUp, type SignUpAllowlist } from './allowlist.ts';
-import { type Clock, signInWithCode, systemClock } from './sign-in-plugin.ts';
+import { clientIpOptions, defaultRequireClientIp, signInRateLimits } from './rate-limit.ts';
+import { type Clock, REQUEST_PATH, signInWithCode, systemClock } from './sign-in-plugin.ts';
 
 const DAY_SECONDS = 24 * 60 * 60;
 
@@ -18,6 +19,17 @@ export interface CreateAuthOptions {
   sendEmail: SendEmail;
   /** Where "now" comes from; the system clock when left out. Tests pass a manual one. */
   clock?: Clock;
+  /**
+   * Gets one line for every rate-limited sign-in request (AC10), without the email address or
+   * the IP address. The server log (`console.warn`) when left out.
+   */
+  log?: (line: string) => void;
+  /**
+   * Whether a proxy always sets the client IP header, so a sign-in request without a usable one
+   * counts against one shared IP limit (AC10). When left out: `defaultRequireClientIp()`
+   * (`ENVIRONMENTS.md §7`).
+   */
+  requireClientIp?: boolean;
   /**
    * Who may create an account by signing in for the first time: `parseSignUpAllowlist` of
    * `SIGN_UP_ALLOWED_EMAILS`. Nobody when left out, so sign-up stays closed.
@@ -62,6 +74,8 @@ export function createAuth({
   baseURL,
   sendEmail,
   clock = systemClock,
+  log = (line) => console.warn(line),
+  requireClientIp = defaultRequireClientIp(),
   signUpAllowlist = closedSignUp,
   reportError,
   runInBackground = () => {},
@@ -82,6 +96,9 @@ export function createAuth({
       },
     }),
     plugins: [
+      // First, so the limits hold before the endpoint does anything (AC10), including the
+      // background work that follows its answer.
+      signInRateLimits({ db, secret, clock, log, requireClientIp }),
       signInWithCode({
         db,
         secret,
@@ -95,6 +112,9 @@ export function createAuth({
         },
       }),
     ],
+    // Better Auth's own limiter (production only) answers 429 and keeps its counts in memory.
+    // The sign-in request has its own limits in Postgres with the neutral answer (rate-limit.ts).
+    rateLimit: { customRules: { [REQUEST_PATH]: false } },
     user: {
       additionalFields: {
         // The language of the screen of the first sign-in (ADR-019).
@@ -107,6 +127,8 @@ export function createAuth({
       updateAge: DAY_SECONDS,
     },
     advanced: {
+      // The client IP address comes from the header Railway's proxy sets (rate-limit.ts).
+      ...clientIpOptions,
       // Postgres generates the uuid primary keys.
       database: {
         generateId: 'uuid',

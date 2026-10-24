@@ -43,6 +43,13 @@
       "when": 1792860412100,
       "tag": "0005_auth_verification_locale",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792869372061,
+      "tag": "0006_auth_rate_limits",
+      "breakpoints": true
     }
   ]
 }

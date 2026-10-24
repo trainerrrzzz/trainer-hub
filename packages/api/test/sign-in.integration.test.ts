@@ -1,5 +1,11 @@
 import { type CreateAuthOptions, createAuth, parseSignUpAllowlist } from '@fivvi/auth';
-import { authUsers, authVerifications, createDatabase, type DatabaseClient } from '@fivvi/database';
+import {
+  authRateLimits,
+  authUsers,
+  authVerifications,
+  createDatabase,
+  type DatabaseClient,
+} from '@fivvi/database';
 import { seed } from '@fivvi/database/seed';
 import {
   createMemoryTransport,
@@ -34,17 +40,31 @@ describe('F001 sign in with the emailed code through the API', () => {
   let reportedErrors: unknown[] = [];
 
   /** The server as apps/web wires it, with the email transport in memory. */
-  function authAt(
-    baseURL: string = ORIGIN,
-    clock?: Clock,
-    emailTransport: EmailTransport = transport,
-    overrides: Partial<CreateAuthOptions> = {},
-  ) {
+  interface AuthAtOptions {
+    baseURL?: string;
+    clock?: Clock;
+    emailTransport?: EmailTransport;
+    log?: (line: string) => void;
+    requireClientIp?: boolean;
+    /** Any other option of `createAuth`, which wins over the defaults of this helper. */
+    overrides?: Partial<CreateAuthOptions>;
+  }
+
+  function authAt({
+    baseURL = ORIGIN,
+    clock,
+    emailTransport = transport,
+    log,
+    requireClientIp,
+    overrides = {},
+  }: AuthAtOptions = {}) {
     return createAuth({
       db: client.db,
       secret: SECRET,
       baseURL,
       ...(clock ? { clock } : {}),
+      ...(log ? { log } : {}),
+      ...(requireClientIp === undefined ? {} : { requireClientIp }),
       signUpAllowlist: allowlist,
       runInBackground: (task) => pending.push(task),
       reportError: (error) => reportedErrors.push(error),
@@ -174,6 +194,7 @@ describe('F001 sign in with the emailed code through the API', () => {
     reportedErrors = [];
     allowlist = parseSignUpAllowlist(undefined);
     await client.db.delete(authVerifications);
+    await client.db.delete(authRateLimits);
     // Accounts that first sign-ins created: only the seeded owner stays.
     await client.db.delete(authUsers).where(ne(authUsers.email, 'owner@example.com'));
   });
@@ -271,7 +292,7 @@ describe('F001 sign in with the emailed code through the API', () => {
   });
 
   it('AC2: the sign-in session cookie is Secure outside local (https)', async () => {
-    const https = authAt('https://fivvi.example.net');
+    const https = authAt({ baseURL: 'https://fivvi.example.net' });
     await requestCode('owner@example.com', 'en', { server: https });
     const response = await enterCode('owner@example.com', readEmail().code, https);
 
@@ -357,7 +378,7 @@ describe('F001 sign in with the emailed code through the API', () => {
     function startAt() {
       freezeSystemTime(T0);
       const clock = manualClock(T0);
-      return { clock, server: authAt(ORIGIN, clock) };
+      return { clock, server: authAt({ clock }) };
     }
 
     it('a code one second short of 15 minutes still signs in', async () => {
@@ -625,7 +646,7 @@ describe('F001 sign in with the emailed code through the API', () => {
           return await transport.send(email);
         },
       };
-      const server = authAt(ORIGIN, undefined, slow);
+      const server = authAt({ emailTransport: slow });
 
       // The answer for an account comes back while its email is still being sent.
       const known = await post('/sign-in/code/request', { email: 'owner@example.com' }, { server });
@@ -659,9 +680,11 @@ describe('F001 sign in with the emailed code through the API', () => {
         const unknown = await normalAnswer();
         const log = spyOnLog();
         // The provider's own error quotes the recipient.
-        const failing = authAt(ORIGIN, undefined, {
-          name: 'failing',
-          send: () => Promise.reject(new Error(`Brevo rejected ${SECRET_ADDRESS}`)),
+        const failing = authAt({
+          emailTransport: {
+            name: 'failing',
+            send: () => Promise.reject(new Error(`Brevo rejected ${SECRET_ADDRESS}`)),
+          },
         });
 
         const known = await post(
@@ -683,8 +706,10 @@ describe('F001 sign in with the emailed code through the API', () => {
 
       it('any other failure is logged by its name alone, because it can quote the address', async () => {
         const log = spyOnLog();
-        const server = authAt(ORIGIN, undefined, transport, {
-          sendEmail: () => Promise.reject(new TypeError(`duplicate key for ${SECRET_ADDRESS}`)),
+        const server = authAt({
+          overrides: {
+            sendEmail: () => Promise.reject(new TypeError(`duplicate key for ${SECRET_ADDRESS}`)),
+          },
         });
 
         const response = await post('/sign-in/code/request', { email: SECRET_ADDRESS }, { server });
@@ -696,10 +721,12 @@ describe('F001 sign in with the emailed code through the API', () => {
 
       it('a reporter that throws neither fails the work nor hides the log line', async () => {
         const log = spyOnLog();
-        const server = authAt(ORIGIN, undefined, transport, {
-          sendEmail: () => Promise.reject(new Error('Brevo is down')),
-          reportError: () => {
-            throw new Error(`Sentry is down for ${SECRET_ADDRESS}`);
+        const server = authAt({
+          overrides: {
+            sendEmail: () => Promise.reject(new Error('Brevo is down')),
+            reportError: () => {
+              throw new Error(`Sentry is down for ${SECRET_ADDRESS}`);
+            },
           },
         });
 
@@ -843,5 +870,322 @@ describe('F001 sign in with the emailed code through the API', () => {
     // What is stored is a keyed hash of each, not the token or the code itself.
     expect(rows[0]?.value).toMatch(/^[0-9a-f]{64}$/);
     expect(rows[0]?.codeHash).toMatch(/^[0-9a-f]{64}$/);
+  });
+
+  describe('AC10 rate limits on sign-in requests', () => {
+    /** The addresses Railway's proxy puts in `x-real-ip` (documentation range, RFC 5737). */
+    const CLIENT_A = '203.0.113.7';
+    const CLIENT_B = '203.0.113.8';
+    const CLIENT_C = '203.0.113.9';
+
+    /**
+     * One server on a manual clock, started at `T0`. The system time is frozen at `T0` as well
+     * (TESTING.md §5.4) and stays there: `clock.advance` moves only the injected clock, which is
+     * what the limits read; the system time is for Better Auth's own code.
+     */
+    function startAt() {
+      freezeSystemTime(T0);
+      const clock = manualClock(T0);
+      const log: string[] = [];
+      return { clock, log, server: authAt({ clock, log: (line) => log.push(line) }) };
+    }
+
+    const from = (ip: string, server: ReturnType<typeof auth>) => ({
+      headers: { 'x-real-ip': ip },
+      server,
+    });
+
+    /**
+     * The per-IP boundary through `send` (one IP address, or none): requests 1 to 19 go to
+     * unknown addresses, the 20th to an account whose address limit is untouched and still
+     * sends one email, the 21st to a second such account and sends none.
+     */
+    async function expectIpBoundary(send: (email: string) => Promise<Response>) {
+      await addTrainerAccount();
+      transport.clear();
+      for (let i = 0; i < 19; i++) await send(`nobody${i}@example.com`);
+      expect(transport.sent).toEqual([]);
+
+      await send('owner@example.com');
+      expect(transport.sent).toHaveLength(1);
+
+      await send('trainer@example.com');
+      expect(transport.sent).toHaveLength(1);
+    }
+
+    it('AC10: rate limits per address and per IP answer neutrally', async () => {
+      const { clock, server } = startAt();
+
+      // Per address: the 3rd request in 15 minutes still sends, the 4th answers like the first
+      // and sends nothing, whichever IP address it comes from.
+      const first = await outcome(
+        await requestCode('owner@example.com', 'en', from(CLIENT_A, server)),
+      );
+      await requestCode('owner@example.com', 'en', from(CLIENT_A, server));
+      await requestCode('owner@example.com', 'en', from(CLIENT_B, server));
+      expect(transport.sent).toHaveLength(3);
+      const limited = await requestCode('owner@example.com', 'en', from(CLIENT_B, server));
+      expect(await outcome(limited)).toEqual(first);
+      expect(transport.sent).toHaveLength(3);
+
+      // After the 15 minutes the address may ask again.
+      clock.advance({ minutes: 15 });
+      await requestCode('owner@example.com', 'en', from(CLIENT_B, server));
+      expect(transport.sent).toHaveLength(4);
+
+      // Per IP address: 20 requests in an hour, whoever they are for (an unknown address counts
+      // too, so the limit can't tell who has an account). A later request is answered the same way.
+      await expectIpBoundary((email) => requestCode(email, 'en', from(CLIENT_C, server)));
+      const ipLimited = await requestCode('owner@example.com', 'en', from(CLIENT_C, server));
+      expect(await outcome(ipLimited)).toEqual(first);
+      expect(transport.sent).toHaveLength(1);
+
+      // Another IP address is not affected, and an hour later the first one may ask again.
+      await requestCode('trainer@example.com', 'en', from(CLIENT_B, server));
+      expect(transport.sent).toHaveLength(2);
+      clock.advance({ hours: 1 });
+      await requestCode('owner@example.com', 'en', from(CLIENT_C, server));
+      expect(transport.sent).toHaveLength(3);
+    });
+
+    it('AC10: an unknown address is limited like an account, so the limit reveals nothing', async () => {
+      const { server } = startAt();
+      const outcomes = async (email: string) => {
+        const results = [];
+        for (let i = 0; i < 4; i++)
+          results.push(await outcome(await requestCode(email, 'en', { server })));
+        return results;
+      };
+
+      const known = await outcomes('owner@example.com');
+      expect(transport.sent).toHaveLength(3);
+      transport.clear();
+      const unknown = await outcomes('nobody@example.com');
+
+      // The 4th answer, the one that is limited, looks like the others, for both addresses.
+      expect(unknown).toEqual(known);
+      expect(transport.sent).toEqual([]);
+      // Both addresses were counted, 4 requests each, and no IP address (no header, not required).
+      const counts = (await client.db.select().from(authRateLimits)).map((row) => row.count);
+      expect(counts).toEqual([4, 4]);
+    });
+
+    it('AC10: the counts of a window that has ended are cleared by the next request', async () => {
+      const { clock, server } = startAt();
+      await requestCode('nobody@example.com', 'en', { server });
+      expect(await client.db.select().from(authRateLimits)).toHaveLength(1);
+
+      // A request of another key, after the window: the old row is gone, not just ignored.
+      clock.advance({ minutes: 15 });
+      await requestCode('someone@example.com', 'en', { server });
+
+      const rows = await client.db.select().from(authRateLimits);
+      expect(rows).toHaveLength(1);
+      expect(rows[0]?.count).toBe(1);
+      expect(rows[0]?.windowEndsAt.getTime()).toBe(clock.now().getTime() + 15 * 60_000);
+    });
+
+    it('AC10: addresses that differ in case or spaces share one limit', async () => {
+      const { server } = startAt();
+      for (const email of ['owner@example.com', ' Owner@Example.com', 'OWNER@EXAMPLE.COM']) {
+        await requestCode(email, 'en', { server });
+      }
+      expect(transport.sent).toHaveLength(3);
+
+      await requestCode(' owner@EXAMPLE.com ', 'en', { server });
+      expect(transport.sent).toHaveLength(3);
+    });
+
+    it('AC10: requests made in parallel are all counted', async () => {
+      const { server } = startAt();
+
+      await Promise.all(
+        Array.from({ length: 10 }, () => requestCode('owner@example.com', 'en', { server })),
+      );
+
+      expect(transport.sent).toHaveLength(3);
+    });
+
+    it('AC10: a limited request leaves the pending email working', async () => {
+      const { server } = startAt();
+      for (let i = 0; i < 3; i++) await requestCode('owner@example.com', 'en', { server });
+      const { code } = readEmail(3);
+
+      await requestCode('owner@example.com', 'en', { server });
+
+      expect(transport.sent).toHaveLength(3);
+      expect((await enterCode('owner@example.com', code, server)).status).toBe(200);
+    });
+
+    it('AC10: the limit survives a new app instance (it is stored in Postgres)', async () => {
+      const { clock } = startAt();
+      for (let i = 0; i < 3; i++) {
+        await requestCode('owner@example.com', 'en', from(CLIENT_A, authAt({ clock })));
+      }
+      expect(transport.sent).toHaveLength(3);
+
+      // A restart or a deploy: a new instance, the same database.
+      const restarted = authAt({ clock });
+      await requestCode('owner@example.com', 'en', from(CLIENT_A, restarted));
+      expect(transport.sent).toHaveLength(3);
+    });
+
+    it('AC10: the per-IP limit survives new app instances (it is stored in Postgres)', async () => {
+      const { clock } = startAt();
+
+      // Every request through a new instance: the count lives in the database, not the instance.
+      await expectIpBoundary((email) =>
+        requestCode(email, 'en', from(CLIENT_B, authAt({ clock }))),
+      );
+    });
+
+    it('AC10: a client cannot dodge the IP limit with a forged x-forwarded-for', async () => {
+      const { server } = startAt();
+      for (let i = 0; i < 20; i++) {
+        await requestCode(`nobody${i}@example.com`, 'en', {
+          server,
+          headers: { 'x-real-ip': CLIENT_A, 'x-forwarded-for': `198.51.100.${i}` },
+        });
+      }
+
+      await requestCode('owner@example.com', 'en', {
+        server,
+        headers: { 'x-real-ip': CLIENT_A, 'x-forwarded-for': '198.51.100.200' },
+      });
+
+      expect(transport.sent).toEqual([]);
+    });
+
+    it('AC10: addresses of the same IPv6 /64 network share one IP limit', async () => {
+      const { server } = startAt();
+      for (let i = 0; i < 20; i++) {
+        await requestCode(`nobody${i}@example.com`, 'en', from(`2001:db8:1:2::${i + 1}`, server));
+      }
+
+      await requestCode('owner@example.com', 'en', from('2001:db8:1:2:ffff::9', server));
+      expect(transport.sent).toEqual([]);
+
+      await requestCode('owner@example.com', 'en', from('2001:db8:1:3::1', server));
+      expect(transport.sent).toHaveLength(1);
+    });
+
+    it('AC10: outside production, without a client IP header only the per-address limit applies', async () => {
+      const { server } = startAt();
+      for (let i = 0; i < 25; i++) {
+        await requestCode(`nobody${i}@example.com`, 'en', { server });
+      }
+      await requestCode('owner@example.com', 'en', { server });
+
+      expect(transport.sent).toHaveLength(1);
+    });
+
+    it('AC10: when the proxy is required, a request without the client IP header counts in one shared bucket', async () => {
+      freezeSystemTime(T0);
+      const server = authAt({ clock: manualClock(T0), requireClientIp: true });
+
+      // No header at all: the shared "unknown IP" bucket, 20 requests an hour for everyone.
+      await expectIpBoundary((email) => requestCode(email, 'en', { server }));
+
+      // A request that does carry an IP address has its own bucket.
+      await requestCode('trainer@example.com', 'en', from(CLIENT_A, server));
+      expect(transport.sent).toHaveLength(2);
+    });
+
+    it('AC10: the proxy is required by default when NODE_ENV is production, and not otherwise', async () => {
+      freezeSystemTime(T0);
+      const clock = manualClock(T0);
+
+      // The default is read when the server is created; the stub is gone before the requests
+      // (it would break the rendering of the email).
+      vi.stubEnv('NODE_ENV', 'production');
+      const behindProxy = authAt({ clock });
+      vi.stubEnv('NODE_ENV', 'test');
+      const local = authAt({ clock });
+      vi.unstubAllEnvs();
+
+      for (let i = 0; i < 25; i++)
+        await requestCode(`nobody${i}@example.com`, 'en', { server: local });
+      await requestCode('owner@example.com', 'en', { server: local });
+      expect(transport.sent).toHaveLength(1);
+
+      transport.clear();
+      await expectIpBoundary((email) => requestCode(email, 'en', { server: behindProxy }));
+    });
+
+    it('AC10: an invalid client IP header is no client IP: no IP limit, or the shared bucket when required', async () => {
+      freezeSystemTime(T0);
+      const clock = manualClock(T0);
+      const invalid = (server: ReturnType<typeof auth>) => ({
+        server,
+        headers: { 'x-real-ip': 'not-an-ip, 203.0.113.7' },
+      });
+
+      // Not required: like no header, so 25 requests with an invalid value are not limited.
+      const open = authAt({ clock });
+      for (let i = 0; i < 25; i++) await requestCode(`nobody${i}@example.com`, 'en', invalid(open));
+      await requestCode('owner@example.com', 'en', invalid(open));
+      expect(transport.sent).toHaveLength(1);
+
+      // Required: the shared "unknown IP" bucket.
+      transport.clear();
+      const required = authAt({ clock, requireClientIp: true });
+      await expectIpBoundary((email) => requestCode(email, 'en', invalid(required)));
+    });
+
+    it('AC10: the rate-limit hit is logged without the email address or the IP address', async () => {
+      const { server, log } = startAt();
+      for (let i = 0; i < 3; i++)
+        await requestCode('owner@example.com', 'en', from(CLIENT_A, server));
+      expect(log).toEqual([]);
+
+      await requestCode('owner@example.com', 'en', from(CLIENT_A, server));
+
+      expect(log).toEqual(['Sign-in request rate-limited: address']);
+      for (let i = 0; i < 20; i++) {
+        await requestCode(`nobody${i}@example.com`, 'en', from(CLIENT_B, server));
+      }
+      await requestCode('nobody-else@example.com', 'en', from(CLIENT_B, server));
+      expect(log.at(-1)).toBe('Sign-in request rate-limited: ip');
+      expect(log.join('\n')).not.toMatch(/example\.com|203\.0\.113/);
+    });
+
+    it('AC10: the default log is a console line without the address or the IP address', async () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      onTestFinished(() => {
+        warn.mockRestore();
+      });
+      freezeSystemTime(T0);
+      const server = authAt({ clock: manualClock(T0) });
+      for (let i = 0; i < 4; i++)
+        await requestCode('owner@example.com', 'en', from(CLIENT_A, server));
+
+      expect(warn).toHaveBeenCalledTimes(1);
+      expect(String(warn.mock.calls[0]?.[0])).toBe('Sign-in request rate-limited: address');
+    });
+
+    it('AC10: the stored limits hold neither the email address nor the IP address', async () => {
+      const { server } = startAt();
+      await requestCode('owner@example.com', 'en', from(CLIENT_A, server));
+
+      const rows = await client.db.select().from(authRateLimits);
+
+      expect(rows).toHaveLength(2);
+      for (const row of rows) {
+        expect(row.key).not.toMatch(/example\.com|203\.0\.113/);
+        expect(row.key).toMatch(/^[\w-]+:[0-9a-f]{64}$/);
+      }
+    });
+
+    it('AC10: the request limits do not touch entering the code', async () => {
+      const { server } = startAt();
+      for (let i = 0; i < 4; i++) await requestCode('owner@example.com', 'en', { server });
+      const { code } = readEmail(3);
+
+      for (let i = 0; i < 5; i++) {
+        expect((await enterCode('owner@example.com', code, server)).status).toBe(
+          i === 0 ? 200 : 401,
+        );
+      }
+    });
   });
 });

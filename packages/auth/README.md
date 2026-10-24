@@ -26,13 +26,17 @@ A person signs in with only their email address. One request creates **one verif
 - **Cookie.** `HttpOnly`, `SameSite=Lax`, `Secure` unless the base URL is plain `http` (local); 30 days, renewed on use.
 - **Closed sign-up (AC8, AC9).** `SIGN_UP_ALLOWED_EMAILS` (`src/allowlist.ts`: exact addresses and `@domain` entries, nothing when empty) is the only way to get an account. An allowed address without an account gets the email like an account does; its account is created when its code is entered, with the language of that email as `preferred_locale` (stored on the verification as `locale`), and it is checked again then. Every other unknown address gets the same status and body and no email, no account and no verification.
 - **The answer does not wait for the work.** Looking up the account, writing the verification and sending the email run after the answer (`runInBackground`), for every address alike, so the answer's time never shows who has an account. A failure of that work is logged by error name only (an `EmailSendError` by its message, which names the provider, status and error code, never the address) and passed to `reportError` (Sentry in `apps/web`); the person asks again. This relies on a long-running Node process, which Railway is; a serverless runtime would need its `waitUntil` here.
+- **Rate limits (AC10, `src/rate-limit.ts`).** A request is counted per email address (3 in 15 minutes) and per IP address (20 in an hour), whether or not the address has an account. Over a limit, the answer is the same `200 { status: true }`, no email is sent, nothing is replaced, and one line `Sign-in request rate-limited: address` (or `ip`) is logged, never with the address or the IP address. The counts are in `auth_rate_limits` (Postgres, so a restart or a deploy keeps them), keyed by a keyed hash of the address or IP address, in fixed windows that start at the first request. They run as a Better Auth `before` hook ahead of the endpoint. Better Auth's own limiter (production only, in memory, answers 429) is switched off for that path; it stays on for the code entry (3 tries in 10 seconds per IP address, per instance).
+- **Client IP address.** From the `X-Real-IP` header only; IPv6 addresses count per /64 network. Why that header, what a missing or invalid one means (`requireClientIp`) and how tests set it: `ENVIRONMENTS.md §7`.
 - No passwords: an address that is neither an account nor allowed is answered like any other.
 
-Not here yet (spec #128, later tickets): the confirm-link endpoint (#136; it creates the account the same way), rate limits (#134), the web pages and product events.
+Not here yet (spec #128, later tickets): the confirm-link endpoint (#136; it creates the account the same way), the web pages and product events.
 
 ## Tables
 
 `auth_users` (an account), `auth_sessions` (a sign-in session), `auth_identities` and `auth_verifications`, in `packages/database/src/schema/auth.ts`. They have no `organization_id`: an account is global and shared by every workspace of its person. Better Auth's start-up schema check is off (`advanced.database.validateSchema`), because the tables lack columns it writes only for passwords, OAuth and images; the integration tests run against the real migrated tables.
+
+`auth_rate_limits` (the sign-in rate limits, `src/rate-limit.ts`) is not an auth model either: one row per limit key with a counter and the end of its window. It has no `organization_id` because it holds no business data, only keyed hashes of an email address or an IP address and counters, and is listed in `NON_BUSINESS_TABLES` (`packages/database/test/database.integration.test.ts`).
 
 ## Configuration
 

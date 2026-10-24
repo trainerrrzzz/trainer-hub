@@ -32,6 +32,7 @@ const NON_BUSINESS_TABLES = [
   'system_greetings',
   // Sign-in tables (F001): an account is global and shared by every workspace of its person.
   'auth_identities',
+  'auth_rate_limits',
   'auth_sessions',
   'auth_users',
   'auth_verifications',

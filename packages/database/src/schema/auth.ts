@@ -99,6 +99,24 @@ export const authVerifications = pgTable(
   ],
 );
 
+/**
+ * How many sign-in requests a key made in its current window (AC10), kept in Postgres so a
+ * deploy or restart doesn't reset it. `key` is `<what>:<keyed hash>` of an email address or an
+ * IP address: the table holds neither. A row is dead once `window_ends_at` has passed; the next
+ * request of that key starts a new window and expired rows are deleted as requests come in.
+ */
+export const authRateLimits = pgTable(
+  'auth_rate_limits',
+  {
+    id: id(),
+    key: text('key').notNull().unique(),
+    count: integer('count').notNull(),
+    windowEndsAt: instant('window_ends_at').notNull(),
+    ...timestamps(),
+  },
+  (table) => [index('auth_rate_limits_window_ends_at_idx').on(table.windowEndsAt)],
+);
+
 export type AuthUser = typeof authUsers.$inferSelect;
 
 /** The account behind a request's sign-in session (spec #128). */
